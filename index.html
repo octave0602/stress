@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VANISH</title>
+<style>
+  :root { --bg:#0a0a0c; --panel:#131317; --line:#26262d; --text:#e8e8ec; --dim:#8a8a96; --acc:#9b7bff; --bad:#ff5c7a; --ok:#4ade80; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(ellipse at top, #1a1430 0%, var(--bg) 60%); color:var(--text); font:15px/1.5 system-ui, sans-serif; }
+  .logo { font-weight:900; letter-spacing:.5em; font-size:28px; background:linear-gradient(90deg,#fff,var(--acc) 60%,transparent); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .center { min-height:100vh; display:grid; place-items:center; padding:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:28px; width:100%; max-width:380px; }
+  label { display:block; font-size:12px; color:var(--dim); margin:12px 0 4px; }
+  input, select { width:100%; padding:10px 12px; background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--text); font:inherit; }
+  input:focus, select:focus { outline:2px solid var(--acc); border-color:transparent; }
+  button { border:0; border-radius:8px; padding:10px 14px; font:inherit; font-weight:600; cursor:pointer; background:var(--acc); color:#0a0a0c; }
+  button.ghost { background:none; border:1px solid var(--line); color:var(--text); }
+  .full { width:100%; margin-top:20px; }
+  .err { color:var(--bad); font-size:13px; min-height:20px; margin-top:10px; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid var(--line); gap:12px; }
+  main { max-width:960px; margin:0 auto; padding:24px 16px; display:grid; gap:20px; }
+  h2 { margin:0 0 12px; font-size:16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .row select { width:auto; }
+  .mono { font-family:ui-monospace, monospace; font-size:13px; }
+  a { color:var(--acc); }
+  .sub { margin-top:20px; padding-top:16px; border-top:1px solid var(--line); color:var(--dim); font-size:13px; text-align:center; }
+  .wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--dim); font-weight:500; }
+  td.mono { font-family:ui-monospace, monospace; }
+  .tag { font-size:11px; padding:2px 8px; border-radius:99px; background:var(--line); }
+  .tag.admin { background:var(--acc); color:#0a0a0c; }
+  .used { color:var(--dim); } .free { color:var(--ok); }
+  .x { background:none; color:var(--bad); padding:2px 6px; }
+  #admin { display:grid; gap:20px; }
+  [hidden] { display:none !important; }
+  main .card { max-width:none; }
+
+  /* dashboard */
+  #app { min-height:100vh; display:flex; flex-direction:column; }
+  .topbar { display:flex; align-items:center; gap:16px; padding:12px 20px; border-bottom:1px solid var(--line); }
+  .crumb { color:var(--dim); font-size:13px; letter-spacing:.15em; }
+  .crumb b { color:var(--text); }
+  .crumb .me { color:var(--acc); }
+  .pill { font-size:12px; color:var(--dim); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
+  .pill b { color:var(--text); }
+  .spacer { flex:1; }
+  .body { flex:1; display:grid; grid-template-columns:56px 1fr 300px; }
+  .rail { border-right:1px solid var(--line); display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 0; }
+  .rail a { width:36px; height:36px; display:grid; place-items:center; border-radius:9px; color:var(--dim); text-decoration:none; font-size:17px; }
+  .rail a.on, .rail a:hover { background:var(--panel); color:var(--acc); }
+  .content { padding:28px 32px; display:grid; gap:20px; align-content:start; min-width:0; }
+  .side { border-left:1px solid var(--line); padding:24px; display:grid; gap:20px; align-content:start; }
+  .hello { font-size:26px; font-weight:800; margin:4px 0 0; }
+  .hello span { color:var(--acc); }
+  .badges { display:flex; gap:8px; }
+  .badge { font-size:10px; letter-spacing:.12em; padding:4px 9px; border-radius:6px; border:1px solid var(--acc); color:var(--acc); }
+  .badge.ghost { border-color:var(--line); color:var(--dim); }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .stat { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  .stat .k { color:var(--dim); font-size:13px; display:flex; justify-content:space-between; align-items:center; }
+  .stat .ico { width:30px; height:30px; border-radius:8px; background:rgba(155,123,255,.14); color:var(--acc); display:grid; place-items:center; }
+  .stat .v { font-size:26px; font-weight:800; margin-top:12px; font-variant-numeric:tabular-nums; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  .panel h3 { margin:0 0 16px; font-size:13px; letter-spacing:.12em; color:var(--dim); text-transform:uppercase; }
+  .ov { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .ov:last-child { border:0; }
+  .ov .dim { color:var(--dim); }
+  .log b { color:var(--acc); font-size:12px; display:block; }
+  .log .ttl { font-weight:700; margin:2px 0 4px; }
+  .log p { margin:0 0 16px; color:var(--dim); font-size:13px; border-left:2px solid var(--line); padding-left:10px; }
+  .two { display:grid; grid-template-columns:1.6fr 1fr; gap:20px; }
+  .prof { display:flex; align-items:center; gap:12px; }
+  .ava { width:44px; height:44px; border-radius:10px; background:linear-gradient(135deg,var(--acc),#5b3fb0); display:grid; place-items:center; font-weight:800; color:#0a0a0c; }
+  .prof .mono { font-weight:700; font-size:15px; }
+  .planbox .amt { font-size:30px; font-weight:800; margin:6px 0; }
+  .btn-lg { width:100%; padding:13px; }
+  .ic { display:inline-flex; vertical-align:middle; line-height:0; }
+  .ic svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .rail .ic svg { width:19px; height:19px; }
+  .stat .ico .ic svg { width:16px; height:16px; }
+  h3 .ic { color:var(--acc); margin-right:4px; }
+  .pill-ic { padding:7px 9px; display:inline-flex; }
+  .legend { display:flex; gap:14px; font-size:12px; color:var(--dim); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .deposit-page { min-height:100vh; padding:32px 16px; }
+  .deposit-shell { max-width:760px; margin:0 auto; display:grid; gap:20px; }
+  .coin-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .coin { text-align:left; background:var(--panel); border:1px solid var(--line); color:var(--text); padding:15px; }
+  .coin.on { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc) inset; }
+  .coin small { display:block; color:var(--dim); margin-top:3px; }
+  .address { word-break:break-all; padding:13px; border-radius:8px; background:var(--bg); border:1px solid var(--line); }
+  .history-item { display:flex; justify-content:space-between; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+  @media (max-width:900px){ .body{grid-template-columns:1fr;} .rail,.side{border:0;} .side{border-top:1px solid var(--line);} .stats{grid-template-columns:repeat(2,1fr);} .two{grid-template-columns:1fr;} .content{padding:20px 16px;} }
+</style>
+</head>
+<body>
+
+<div id="login" class="center" hidden>
+  <form class="card" id="authForm">
+    <div class="logo">VANISH</div>
+    <label for="t" style="margin-top:24px">액세스 토큰</label>
+    <input id="t" type="password" placeholder="VNSH-..." autocomplete="current-password" required>
+    <button class="full">로그인</button>
+    <div class="err" id="err" role="alert"></div>
+    <div class="sub">토큰이 없나요? <a href="/signup">토큰 생성</a></div>
+  </form>
+</div>
+
+<div id="signup" class="center" hidden>
+  <div class="card">
+    <div class="logo">VANISH</div>
+    <h2 style="margin-top:24px">토큰 생성</h2>
+    <div style="color:var(--dim);font-size:13px">토큰이 계정이자 유일한 로그인 수단입니다. IP당 1개만 생성할 수 있습니다.</div>
+    <button class="full" id="genBtn">토큰 생성</button>
+    <div id="newWrap" hidden>
+      <label for="newTok">내 토큰</label>
+      <div class="row" style="flex-wrap:nowrap">
+        <input id="newTok" class="mono" readonly>
+        <button id="copyBtn" type="button">복사</button>
+      </div>
+      <div style="color:var(--bad);font-size:12px;margin-top:8px">이 화면을 벗어나면 다시 볼 수 없습니다. 지금 꼭 저장하세요.</div>
+      <a href="/" class="full" style="display:block;text-align:center">로그인하러 가기 →</a>
+    </div>
+    <div class="err" id="signErr" role="alert"></div>
+    <div class="sub">이미 토큰이 있나요? <a href="/">로그인</a></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <div class="topbar">
+    <div class="logo" style="font-size:18px;letter-spacing:.3em">VANISH</div>
+    <div class="crumb">DASHBOARD / <b>Login as</b> <span class="me" id="who"></span></div>
+    <div class="spacer"></div>
+    <div class="pill pill-ic"><span class="ic" data-ic="bell"></span></div>
+    <div class="pill">BAL: <b id="balTop">$0.00</b></div>
+    <div class="pill">THEME: <b>PURPLE</b></div>
+    <button class="ghost" id="logout" style="padding:6px 12px">로그아웃</button>
+  </div>
+  <div class="body">
+    <nav class="rail">
+      <a class="on" title="대시보드"><span class="ic" data-ic="grid"></span></a>
+      <a title="활동"><span class="ic" data-ic="bolt"></span></a>
+      <a title="보안"><span class="ic" data-ic="shield"></span></a>
+      <a title="프로필"><span class="ic" data-ic="user"></span></a>
+      <a title="결제"><span class="ic" data-ic="card"></span></a>
+      <a id="adminNav" title="관리자" hidden><span class="ic" data-ic="shield"></span></a>
+      <a title="지원"><span class="ic" data-ic="mail"></span></a>
+    </nav>
+
+    <main class="content">
+      <div>
+        <div class="badges">
+          <span class="badge">OPERATOR ACTIVE</span>
+          <span class="badge ghost" id="tierBadge">CUSTOM</span>
+          <span class="badge ghost">STARTER</span>
+        </div>
+        <h1 class="hello">환영합니다, <span id="helloName">Operator</span></h1>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">전체 사용자 <span class="ico"><span class="ic" data-ic="users"></span></span></div><div class="v" data-stat="users">0</div></div>
+        <div class="stat"><div class="k">활성 세션 <span class="ico"><span class="ic" data-ic="pulse"></span></span></div><div class="v" data-stat="sessions">0</div></div>
+        <div class="stat"><div class="k">누적 요청 <span class="ico"><span class="ic" data-ic="bars"></span></span></div><div class="v" data-stat="reqs">0</div></div>
+        <div class="stat"><div class="k">저장공간 <span class="ico"><span class="ic" data-ic="db"></span></span></div><div class="v" data-stat="storage">0</div></div>
+      </div>
+
+      <div class="two">
+        <div class="panel">
+          <h3><span class="ic" data-ic="refresh"></span> 업데이트 로그</h3>
+          <div class="log" id="publicUpdates">
+            <b>2026-10-04</b><div class="ttl">실시간 대시보드 공개</div>
+            <p>통계 카드와 실시간 그래프가 추가되었습니다.</p>
+            <b>2026-09-28</b><div class="ttl">플랜 관리 개편</div>
+            <p>사이드바에서 플랜과 잔액을 바로 확인할 수 있습니다.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3><span class="ic" data-ic="info"></span> 계정 개요</h3>
+          <div class="ov"><span class="dim">액세스 등급</span><b id="ovTier">CUSTOM</b></div>
+          <div class="ov"><span class="dim">활성 플랜</span><b>STARTER</b></div>
+          <div class="ov"><span class="dim">동시 세션</span><b>1</b></div>
+          <div class="ov"><span class="dim">가입일</span><b id="ovJoined">—</b></div>
+          <div class="ov"><span class="dim">상태</span><b style="color:var(--ok)">정상</b></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0"><span class="ic" data-ic="chart"></span> 사용량 — 실시간</h3>
+          <div class="legend"><span><i class="dot" style="background:#c4a7ff"></i>Web</span><span><i class="dot" style="background:var(--acc)"></i>API</span></div>
+        </div>
+        <svg id="chart" viewBox="0 0 800 220" width="100%" height="220" preserveAspectRatio="none" aria-label="실시간 사용량 그래프"></svg>
+      </div>
+
+      <div id="admin" hidden>
+        <div class="panel"><h3>관리자 패널 · 업데이트 관리</h3>
+          <label for="updateTitle">제목</label><input id="updateTitle" maxlength="100" placeholder="업데이트 제목">
+          <label for="updateBody">내용</label><input id="updateBody" maxlength="1000" placeholder="업데이트 내용">
+          <button class="full" id="publishUpdate">업데이트 등록</button>
+          <div id="adminUpdates" class="log" style="margin-top:16px"></div>
+        </div>
+        <div class="panel"><h3>관리자 패널 · 계정 관리</h3><div class="wrap"><table>
+          <thead><tr><th>토큰</th><th>권한</th><th>발급</th><th>마지막 로그인</th><th>관리</th></tr></thead><tbody id="accounts"></tbody>
+        </table></div></div>
+      </div>
+    </main>
+
+    <aside class="side">
+      <h3 style="margin:0;font-size:12px;letter-spacing:.12em;color:var(--dim)">계정 개요</h3>
+      <div class="prof">
+        <div class="ava" id="ava">V</div>
+        <div><div class="mono" id="sideName">@user</div><div class="dim" style="font-size:12px" id="sideSince">Since 2026</div></div>
+      </div>
+      <div class="panel" style="padding:16px">
+        <div style="font-size:12px;letter-spacing:.1em;color:var(--acc);display:flex;align-items:center;gap:6px"><span class="ic" data-ic="mail"></span> 지원</div>
+        <div class="dim" style="font-size:13px;margin-top:6px">문의 사항이 있으면 지원 채널로 연락주세요.</div>
+      </div>
+      <div class="planbox">
+        <div style="font-size:12px;letter-spacing:.1em;color:var(--acc);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span class="ic" data-ic="gem"></span> 현재 플랜</div>
+        <div class="panel" style="padding:16px">
+          <div style="display:flex;justify-content:space-between"><span class="dim" style="font-size:12px">STARTER</span><span class="badge" style="padding:2px 7px">ACTIVE</span></div>
+          <div class="amt">$0.00</div>
+          <div class="ov" style="padding-top:10px"><span class="dim">가입</span><b id="sideJoined">—</b></div>
+        </div>
+      </div>
+      <button class="btn-lg">플랜 업그레이드</button>
+      <button class="ghost btn-lg" id="depositBtn">잔액 충전</button>
+    </aside>
+  </div>
+</div>
+
+<div id="depositPage" class="deposit-page" hidden>
+  <div class="deposit-shell">
+    <header style="padding:0;border:0"><div class="logo" style="font-size:20px;letter-spacing:.3em">VANISH</div><div class="spacer"></div><button class="ghost" id="backDashboard">← 대시보드</button></header>
+    <div><div class="badges"><span class="badge">CRYPTO DEPOSIT</span></div><h1 class="hello">암호화폐 충전</h1><p style="color:var(--dim);margin:8px 0 0">입금 컨펌이 완료되면 USD 잔액으로 자동 반영됩니다.</p></div>
+    <section class="panel"><h3>1. 충전 코인 선택</h3><div class="coin-grid" id="coinGrid">
+      <button class="coin on" data-asset="USDT_TRC20">USDT<small>TRC-20</small></button><button class="coin" data-asset="TRX">TRX<small>TRON</small></button><button class="coin" data-asset="LTC">LTC<small>LITECOIN</small></button>
+    </div></section>
+    <section class="panel"><h3>2. 충전 금액</h3><label for="depositAmount">코인 수량</label><input id="depositAmount" type="number" min="0" step="any" placeholder="예: 10"><button class="full" id="createDeposit">충전 주소 만들기</button><div class="err" id="depositError" role="alert"></div></section>
+    <section class="panel" id="paymentCard" hidden><h3>3. 아래 주소로 정확한 금액 전송</h3><div class="ov"><span class="dim">전송 금액</span><b id="payAmount"></b></div><div class="ov"><span class="dim">USD 반영 예정</span><b id="payUsd"></b></div><label>수신 주소</label><div class="address mono" id="payAddress"></div><button class="ghost full" id="copyAddress">주소 복사</button><p class="dim" id="payExpiry" style="font-size:12px"></p></section>
+    <section class="panel"><h3>최근 충전</h3><div id="depositHistory" class="dim">충전 내역이 없습니다.</div></section>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// --- inline SVG icon set (feather-style, currentColor) ---
+const ICONS = {
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  bolt: '<path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/>',
+  shield: '<path d="M12 3 5 6v5c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+  card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m3 6 9 7 9-7"/>',
+  users: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M17 4a4 4 0 0 1 0 8"/><path d="M22 21c0-3-2-5-5-5.5"/>',
+  pulse: '<path d="M2 12h5l2-6 4 12 2-6h7"/>',
+  bars: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  db: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>',
+  bell: '<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/>',
+  gem: '<path d="M6 3h12l3 6-9 12L3 9l3-6Z"/><path d="M3 9h18M9 3 7 9l5 12 5-12-2-6"/>',
+};
+document.querySelectorAll('.ic[data-ic]').forEach(e => {
+  e.innerHTML = `<svg viewBox="0 0 24 24">${ICONS[e.dataset.ic] || ''}</svg>`;
+});
+
+const api = async (method, url, body) => {
+  const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(data.error || '오류'), data);
+  return data;
+};
+const el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
+const tag = role => el('span', role, 'tag ' + role);
+
+let meId;
+
+$('authForm').onsubmit = async e => {
+  e.preventDefault();
+  $('err').textContent = '';
+  try { await api('POST', '/api/login', { token: $('t').value }); $('t').value = ''; boot(); }
+  catch (x) { $('err').textContent = x.message; }
+};
+
+$('logout').onclick = async () => { await api('POST', '/api/logout'); location.reload(); };
+
+$('genBtn').onclick = async () => {
+  $('signErr').textContent = '';
+  try {
+    const { token } = await api('POST', '/api/signup');
+    $('newTok').value = token; $('newWrap').hidden = false; $('genBtn').hidden = true;
+    $('newTok').select();
+  } catch (x) { $('signErr').textContent = x.message; }
+};
+$('newTok').onfocus = e => e.target.select();
+$('copyBtn').onclick = async () => {
+  // clipboard API needs https/localhost; fall back to execCommand on plain http
+  try { await navigator.clipboard.writeText($('newTok').value); }
+  catch { $('newTok').select(); document.execCommand('copy'); }
+  $('copyBtn').textContent = '복사됨 ✓';
+  setTimeout(() => $('copyBtn').textContent = '복사', 1500);
+};
+
+async function loadAdmin() {
+  const accounts = await api('GET', '/api/accounts');
+  $('accounts').replaceChildren(...accounts.map(a => {
+    const tr = el('tr'), role = el('td'), del = el('td');
+    role.append(tag(a.role));
+    if (a.id !== meId) {
+      const change = el('button', a.role === 'admin' ? '사용자' : '관리자', 'ghost');
+      change.style.padding = '3px 7px';
+      change.onclick = async () => { await api('PATCH', '/api/accounts', { id: a.id, role: a.role === 'admin' ? 'user' : 'admin' }); loadAdmin(); };
+      const remove = el('button', '삭제', 'x');
+      remove.onclick = async () => { if (confirm(`${a.label} 계정을 삭제할까요?`)) { await api('DELETE', '/api/accounts', { id: a.id }); loadAdmin(); } };
+      del.append(change, remove);
+    }
+    tr.append(el('td', a.prefix + '…', 'mono'), role, el('td', a.created_at),
+      el('td', a.last_login ?? '—', a.last_login ? '' : 'used'), del);
+    return tr;
+  }));
+}
+
+async function loadUpdates() {
+  const updates = await api('GET', '/api/updates');
+  const render = (target, editable) => target.replaceChildren(...updates.map(u => {
+    const item = el('div', null, 'log');
+    item.append(el('b', u.created_at.slice(0, 10)), el('div', u.title, 'ttl'), el('p', u.body));
+    if (editable) { const remove = el('button', '삭제', 'x'); remove.onclick = async () => { await api('DELETE', '/api/updates', { id: u.id }); loadUpdates(); }; item.append(remove); }
+    return item;
+  }));
+  render($('publicUpdates'), false);
+  if (!$('admin').hidden) render($('adminUpdates'), true);
+}
+$('publishUpdate').onclick = async () => {
+  try { await api('POST', '/api/updates', { title: $('updateTitle').value, body: $('updateBody').value }); $('updateTitle').value = $('updateBody').value = ''; loadUpdates(); }
+  catch (x) { alert(x.message); }
+};
+
+// --- live stats from /api/stats ---
+const statEl = k => document.querySelector(`[data-stat=${k}]`);
+function animateStat(elm, to) {
+  const from = parseInt(elm.textContent.replace(/[^0-9]/g, '')) || 0, t0 = performance.now(), dur = 700;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), v = Math.round(from + (to - from) * (1 - (1 - p) ** 3));
+    elm.textContent = v.toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const fmtBytes = n => n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+let statsTimer;
+async function fillStats() {
+  try {
+    const s = await api('GET', '/api/stats');
+    animateStat(statEl('users'), s.users);
+    animateStat(statEl('sessions'), s.sessions);
+    animateStat(statEl('reqs'), s.requests);
+    statEl('storage').textContent = fmtBytes(s.storageBytes);
+  } catch {}
+  clearTimeout(statsTimer);
+  statsTimer = setTimeout(fillStats, 5000);
+}
+
+// --- live chart: two drifting series, redrawn every 1.5s ---
+let chartTimer;
+function startChart() {
+  const svg = $('chart'), W = 800, H = 220, N = 30;
+  const mk = (base, phase) => Array.from({ length: N }, (_, i) => base + Math.sin((i + phase) / 5) * 0.12 + Math.sin((i + phase) / 11) * 0.06);
+  const series = { web: mk(0.42, 0), api: mk(0.62, 7) };
+  const path = (arr, max) => arr.map((v, i) =>
+    `${i === 0 ? 'M' : 'L'}${(i / (N - 1) * W).toFixed(1)},${(H - (v / max) * (H - 20) - 6).toFixed(1)}`).join(' ');
+  const draw = () => {
+    const max = Math.max(1, ...series.web, ...series.api);
+    svg.innerHTML =
+      `<path d="${path(series.web, max)} L${W},${H} L0,${H} Z" fill="rgba(196,167,255,.10)"/>
+       <path d="${path(series.web, max)}" fill="none" stroke="#c4a7ff" stroke-width="2"/>
+       <path d="${path(series.api, max)} L${W},${H} L0,${H} Z" fill="rgba(155,123,255,.14)"/>
+       <path d="${path(series.api, max)}" fill="none" stroke="var(--acc)" stroke-width="2"/>`;
+  };
+  const tick = () => {
+    for (const k of ['web', 'api']) {
+      series[k].shift();
+      const last = series[k][series[k].length - 1];
+      const previous = series[k][series[k].length - 2];
+      const momentum = last - previous;
+      const seasonal = Math.sin(Date.now() / 7000 + (k === 'web' ? 0 : 1.8)) * 0.025;
+      series[k].push(Math.max(0.08, Math.min(1.3, last + momentum * 0.58 + seasonal + (Math.random() - 0.5) * 0.035)));
+    }
+    draw();
+  };
+  draw();
+  clearInterval(chartTimer);
+  chartTimer = setInterval(tick, 1500);
+}
+
+let selectedAsset = 'USDT_TRC20', activeDeposit;
+$('depositBtn').onclick = () => { history.pushState(null, '', '/deposit'); showPage(); };
+$('adminNav').onclick = () => $('admin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+$('backDashboard').onclick = () => { history.pushState(null, '', '/'); showPage(); };
+window.onpopstate = showPage;
+document.querySelectorAll('[data-asset]').forEach(button => button.onclick = () => {
+  selectedAsset = button.dataset.asset;
+  document.querySelectorAll('[data-asset]').forEach(b => b.classList.toggle('on', b === button));
+});
+$('createDeposit').onclick = async () => {
+  $('depositError').textContent = '';
+  try {
+    const d = await api('POST', '/api/crypto/deposits', { asset: selectedAsset, amount: $('depositAmount').value });
+    activeDeposit = d;
+    $('payAmount').textContent = `${d.amount} ${d.asset}`;
+    $('payUsd').textContent = `$${d.usdAmount.toFixed(2)}`;
+    $('payAddress').textContent = d.address;
+    $('payExpiry').textContent = `${new Date(d.expiresAt + 'Z').toLocaleString()} 전까지 전송하세요. 컨펌 이후 자동 반영됩니다.`;
+    $('paymentCard').hidden = false;
+    refreshCrypto();
+  } catch (x) { $('depositError').textContent = x.message; }
+};
+$('copyAddress').onclick = async () => { if (activeDeposit) await navigator.clipboard.writeText(activeDeposit.address); };
+
+async function refreshCrypto() {
+  try {
+    const data = await api('GET', '/api/crypto/deposits');
+    $('balTop').textContent = `$${data.balanceUsd.toFixed(2)}`;
+    $('depositHistory').replaceChildren(...(data.deposits.length ? data.deposits.map(d => {
+      const row = el('div', null, 'history-item');
+      row.append(el('span', `${d.amount} ${d.asset} · $${d.usdAmount.toFixed(2)}`), el('b', d.status === 'credited' ? '충전 완료' : d.status === 'pending' ? '컨펌 대기' : '만료'));
+      return row;
+    }) : [el('div', '충전 내역이 없습니다.', 'dim')]));
+  } catch {}
+}
+
+function showPage() {
+  const deposit = location.pathname === '/deposit';
+  $('app').hidden = deposit;
+  $('depositPage').hidden = !deposit;
+  if (deposit) refreshCrypto();
+}
+setInterval(refreshCrypto, 15000);
+
+async function boot() {
+  try {
+    const me = await api('GET', '/api/me');
+    meId = me.id;
+    if (location.pathname !== '/') history.replaceState(null, '', '/');
+    $('login').hidden = true;
+    $('signup').hidden = true;
+    $('app').hidden = false;
+    const name = me.label || 'user', joined = (me.created_at || '').slice(0, 10) || '—';
+    $('who').textContent = '@' + name;
+    $('helloName').textContent = name;
+    $('sideName').textContent = '@' + name;
+    $('ava').textContent = name[0]?.toUpperCase() || 'V';
+    $('sideSince').textContent = 'Since ' + (joined.slice(0, 4) || '2026');
+    $('tierBadge').textContent = $('ovTier').textContent = me.role.toUpperCase();
+    $('ovJoined').textContent = $('sideJoined').textContent = joined;
+    fillStats();
+    startChart();
+    $('admin').hidden = me.role !== 'admin';
+    $('adminNav').hidden = me.role !== 'admin';
+    if (me.role === 'admin') loadAdmin();
+    loadUpdates();
+    refreshCrypto();
+    showPage();
+  } catch {
+    $('app').hidden = true;
+    $(location.pathname === '/signup' ? 'signup' : 'login').hidden = false;
+  }
+}
+boot();
+</script>
+</body>
+</html>
